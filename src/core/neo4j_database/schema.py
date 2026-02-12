@@ -14,40 +14,38 @@ NODE_TYPES = [
             {"name": "persona_name", "type": "STRING", "description": "e.g., 'Helpful Companion'"}
         ]
     },
-
     {
         "label": "Session", 
         "properties": [
-            {"name": "session_id", "type": "STRING", "description": "Unique UUID for this specific conversation"},
-            {"name": "start_time", "type": "DATETIME"},
-            {"name": "summary", "type": "STRING", "description": "Auto-generated summary: e.g., 'Chat about nursing job and cat Luna'"},
-            {"name": "topic_tags", "type": "LIST<STRING>", "description": "e.g., ['Work', 'Pets', 'Hiking']"}
+            {"name": "session_id", "type": "STRING"},
+            {"name": "start_time", "type": "ZONED_DATETIME"}, 
+            {"name": "summary", "type": "STRING"},
+            {"name": "topic_tags", "type": "LIST"} 
         ]
     },
     {
         "label": "Message", 
         "properties": [
-            {"name": "content", "type": "STRING", "description": "The raw text"},
-            {"name": "role", "type": "STRING", "description": "'user' or 'agent'"},
-            {"name": "timestamp", "type": "DATETIME"},
-            {"name": "sentiment_score", "type": "FLOAT", "description": "-1.0 to 1.0"}
+            {"name": "content", "type": "STRING"},
+            {"name": "role", "type": "STRING"},
+            # FIX: Changed DATETIME to ZONED_DATETIME
+            {"name": "timestamp", "type": "ZONED_DATETIME"},
+            {"name": "sentiment_score", "type": "FLOAT"}
         ]
     },
-
-
     {
         "label": "Fact", 
         "properties": [
-            {"name": "category", "type": "STRING", "description": "e.g., Occupation, Location, Hobby"},
-            {"name": "value", "type": "STRING", "description": "e.g., 'Nurse', 'Seattle', 'Mystery Novels'"},
+            {"name": "category", "type": "STRING"},
+            {"name": "value", "type": "STRING"},
             {"name": "confidence", "type": "FLOAT"}
         ]
     },
     {
         "label": "Entity", 
         "properties": [
-            {"name": "name", "type": "STRING", "description": "e.g., 'Luna', 'Rattlesnake Ledge'"},
-            {"name": "type", "type": "STRING", "description": "e.g., Pet, Location, BookGenre"}
+            {"name": "name", "type": "STRING"},
+            {"name": "type", "type": "STRING"}
         ]
     }
 ]

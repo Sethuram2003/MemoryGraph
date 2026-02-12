@@ -73,9 +73,18 @@ class Neo4jDBManager:
         create a KG and populate the database from text
         """
 
-        azure_embedding = OllamaEmbeddings(model=os.getenv('OLLAMA_EMBEDDING_MODEL'))
+        azure_embedding = OllamaEmbeddings(
+            model=os.getenv('OLLAMA_EMBEDDING_MODEL')
+        )
 
-        llm = OllamaLLM(model_name=os.getenv("OLLAMA_LLM_MODEL"))
+        llm = OllamaLLM(
+            model_name=os.getenv("OLLAMA_LLM_MODEL"),
+            model_params={
+                    "max_tokens": 2000,
+                    "response_format": {"type": "json_object"},
+                    "temperature": 0,
+                }
+            )
 
 
         kg_builder = SimpleKGPipeline(
