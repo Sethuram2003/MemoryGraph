@@ -1,7 +1,7 @@
 from neo4j import GraphDatabase, basic_auth
-from neo4j_graphrag.embeddings import AzureOpenAIEmbeddings
+from neo4j_graphrag.embeddings import AzureOpenAIEmbeddings, OllamaEmbeddings
 from neo4j_graphrag.generation import GraphRAG
-from neo4j_graphrag.llm import AzureOpenAILLM
+from neo4j_graphrag.llm import AzureOpenAILLM, OllamaLLM
 from neo4j_graphrag.retrievers import VectorCypherRetriever
 from neo4j_graphrag.experimental.pipeline.kg_builder import SimpleKGPipeline
 from neo4j_graphrag.indexes import create_vector_index
@@ -73,19 +73,9 @@ class Neo4jDBManager:
         create a KG and populate the database from text
         """
 
-        azure_embedding = AzureOpenAIEmbeddings(
-                                    model=os.getenv("DEPLOYMENT"),
-                                    api_key= os.getenv("API_KEY"), 
-                                    azure_endpoint=os.getenv("API_ENDPOINT"),
-                                    api_version=os.getenv("API_VERSION")
-                                )
+        azure_embedding = OllamaEmbeddings(model=os.getenv('OLLAMA_EMBEDDING_MODEL'))
 
-        llm = AzureOpenAILLM(
-                                model_name=os.getenv("AZURE_OPENAI_DEPLOYMENT"),           
-                                api_key= os.getenv("AZURE_OPENAI_API_KEY"), 
-                                azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-                                api_version="2024-08-01-preview",
-                            )
+        llm = OllamaLLM(model_name=os.getenv("OLLAMA_LLM_MODEL"))
 
 
         kg_builder = SimpleKGPipeline(
@@ -148,27 +138,17 @@ class Neo4jDBManager:
         """
 
         INDEX_NAME = f"{db_name}_chunk_index"
-        azure_embedding = AzureOpenAIEmbeddings(
-                                    model=os.getenv("DEPLOYMENT"),
-                                    api_key= os.getenv("API_KEY"), 
-                                    azure_endpoint=os.getenv("API_ENDPOINT"),
-                                    api_version=os.getenv("API_VERSION")
-                                )
+        azure_embedding = OllamaEmbeddings(model=os.getenv('OLLAMA_EMBEDDING_MODEL'))
 
-        llm = AzureOpenAILLM(
-                                model_name=os.getenv("AZURE_OPENAI_DEPLOYMENT"),
-                                api_key= os.getenv("AZURE_OPENAI_API_KEY"), 
-                                azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-                                api_version="2024-08-01-preview",
-                            )
-        
+        llm = OllamaLLM(model_name=os.getenv("OLLAMA_LLM_MODEL"))
+
         try:
             create_vector_index(
                 self.driver,
                 name=INDEX_NAME,
                 label="Chunk",
                 embedding_property="embedding",
-                dimensions=3072,
+                dimensions=os.getenv("OLLAMA_EMBEDDING_DIMENSION", 3072),
                 similarity_fn="cosine",
                 neo4j_database=db_name
             )

@@ -1,5 +1,5 @@
 import os
-from app.core.neo4j_database.neo4j_manager import Neo4jDBManager
+from src.core.neo4j_database.neo4j_manager import Neo4jDBManager
 
 neo4j_service = None
 
