@@ -11,7 +11,7 @@ rag_pipeline_router = APIRouter(tags=["GraphRag"])
 
 app = FastAPI()
 
-@rag_pipeline_router.post("/neo4j-rag-pipeline-pdf-to-kg")
+@rag_pipeline_router.post("/neo4j-pipeline-kg")
 async def rag_pipeline(
     content: str = Form(...)
 ):

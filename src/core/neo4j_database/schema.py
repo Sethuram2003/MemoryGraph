@@ -1,193 +1,91 @@
-# NODE_TYPES = [
-#     {"label": "Country", "properties": [{"name": "name", "type": "STRING"}, {"name": "description", "type": "STRING"}]},
-#     {"label": "City", "properties": [{"name": "name", "type": "STRING"}, {"name": "description", "type": "STRING"}]},
-#     {"label": "Port", "properties": [{"name": "name", "type": "STRING"}, {"name": "description", "type": "STRING"}]},
-#     {"label": "Category", "properties": [{"name": "name", "type": "STRING"}, {"name": "description", "type": "STRING"}]},
-#     {"label": "Activity", "properties": [{"name": "name", "type": "STRING"}, {"name": "description", "type": "STRING"}]},
-#     {"label": "Cuisine", "properties": [{"name": "name", "type": "STRING"}, {"name": "description", "type": "STRING"}]},
-#     {"label": "Shopping", "properties": [{"name": "name", "type": "STRING"}, {"name": "description", "type": "STRING"}]},
-#     {"label": "Museum", "properties": [{"name": "name", "type": "STRING"}, {"name": "description", "type": "STRING"}]},
-#     {"label": "HistoricalSite", "properties": [{"name": "name", "type": "STRING"}, {"name": "description", "type": "STRING"}]},
-#     {"label": "InsiderTip", "properties": [{"name": "name", "type": "STRING"}, {"name": "description", "type": "STRING"}]}
-# ]
-
-# RELATIONSHIP_TYPES = [
-#     {"label": "IS_CITY_OF"},
-#     {"label": "HAS_PORT"},
-#     {"label": "HAS_CATEGORY"},       # Port -> Category
-#     {"label": "INCLUDES_ITEM"},      # Category -> (Activity, Museum, etc.)
-#     {"label": "HAS_INSIDER_TIP"}     # (Activity/Cuisine/etc.) -> InsiderTip
-# ]
-
-# PATTERNS = [
-#     ["City", "IS_CITY_OF", "Country"],    
-#     ["City", "HAS_PORT", "Port"],        
-    
-#     # Tier 1: Port to Categories
-#     ["Port", "HAS_CATEGORY", "Category"], 
-    
-#     # Tier 2: Categories to specific Features
-#     ["Category", "INCLUDES_ITEM", "Activity"],
-#     ["Category", "INCLUDES_ITEM", "Museum"],
-#     ["Category", "INCLUDES_ITEM", "HistoricalSite"],
-#     ["Category", "INCLUDES_ITEM", "Shopping"],
-#     ["Category", "INCLUDES_ITEM", "Cuisine"],
-
-#     # Tier 3: Contextual Tips (Connected to the item, not the port)
-#     ["Activity", "HAS_INSIDER_TIP", "InsiderTip"],
-#     ["Museum", "HAS_INSIDER_TIP", "InsiderTip"],
-#     ["HistoricalSite", "HAS_INSIDER_TIP", "InsiderTip"],
-#     ["Shopping", "HAS_INSIDER_TIP", "InsiderTip"],
-#     ["Cuisine", "HAS_INSIDER_TIP", "InsiderTip"]
-# ]
-
-# GRAPH_SCHEMA = {
-#     "node_types": NODE_TYPES,
-#     "relationship_types": RELATIONSHIP_TYPES,
-#     "patterns": PATTERNS
-# }
-# 
-
 NODE_TYPES = [
-    # --- Geographic & Destination Nodes ---
     {
-        "label": "Destination", 
+        "label": "User", 
         "properties": [
-            {"name": "name", "type": "STRING", "description": "e.g., Perfect Day at CocoCay"},
-            {"name": "description", "type": "STRING"},
-            {"name": "avg_rating", "type": "FLOAT"},
-            {"name": "review_count", "type": "INTEGER"}
+            {"name": "user_id", "type": "STRING", "description": "The unique ID for your single user"},
+            {"name": "name", "type": "STRING", "description": "e.g., 'Alex'"},
+            {"name": "current_mood", "type": "STRING", "description": "Updated dynamically based on last session"}
         ]
     },
     {
-        "label": "Zone", 
+        "label": "Agent", 
         "properties": [
-            {"name": "name", "type": "STRING", "description": "e.g., Thrill Waterpark, Chill Island, South Beach"},
-            {"name": "description", "type": "STRING"},
-            {"name": "tagline", "type": "STRING", "description": "e.g., 'Cranked up thrills'"},
-            {"name": "video_url", "type": "STRING"},
-            {"name": "is_exclusive", "type": "BOOLEAN", "description": "True for Coco Beach Club / Hideaway Beach"}
-        ]
-    },
-    {
-        "label": "Venue", 
-        "properties": [
-            {"name": "name", "type": "STRING", "description": "e.g., Daredevil's Peak, Skipper's Grill"},
-            {"name": "type", "type": "STRING", "description": "e.g., Slide, Pool, Restaurant, Bar, Cabana"},
-            {"name": "description", "type": "STRING"},
-            {"name": "thrill_level", "type": "STRING", "description": "e.g., 'Mild', 'Strenuous'"},
-            {"name": "is_complimentary", "type": "BOOLEAN", "description": "True if included in fare, False if upcharge"},
-            {"name": "water_depth", "type": "STRING"},
-            {"name": "opening_hours", "type": "STRING"}
-        ]
-    },
-    {
-        "label": "LogisticsPoint",
-        "properties": [
-            {"name": "name", "type": "STRING", "description": "e.g., Breezy Bay Tram Stop, Arrivals Plaza"},
-            {"name": "type", "type": "STRING", "description": "Tram Stop, Bathroom, Towel Station, Locker Area"}
+            {"name": "agent_id", "type": "STRING"},
+            {"name": "persona_name", "type": "STRING", "description": "e.g., 'Helpful Companion'"}
         ]
     },
 
-    # --- Cruise & Itinerary Nodes ---
     {
-        "label": "Ship", 
+        "label": "Session", 
         "properties": [
-            {"name": "name", "type": "STRING", "description": "e.g., Icon of the Seas"},
-            {"name": "class", "type": "STRING", "description": "e.g., Icon Class, Oasis Class"},
-            {"name": "guest_capacity", "type": "INTEGER"}
+            {"name": "session_id", "type": "STRING", "description": "Unique UUID for this specific conversation"},
+            {"name": "start_time", "type": "DATETIME"},
+            {"name": "summary", "type": "STRING", "description": "Auto-generated summary: e.g., 'Chat about nursing job and cat Luna'"},
+            {"name": "topic_tags", "type": "LIST<STRING>", "description": "e.g., ['Work', 'Pets', 'Hiking']"}
         ]
     },
     {
-        "label": "Itinerary", 
+        "label": "Message", 
         "properties": [
-            {"name": "name", "type": "STRING", "description": "e.g., 7 Night Western Caribbean & Perfect Day"},
-            {"name": "duration_nights", "type": "INTEGER"},
-            {"name": "embarkation_port", "type": "STRING"}
-        ]
-    },
-    {
-        "label": "Sailing",
-        "properties": [
-            {"name": "departure_date", "type": "DATE"},
-            {"name": "price_lowest", "type": "FLOAT"},
-            {"name": "price_currency", "type": "STRING"}
+            {"name": "content", "type": "STRING", "description": "The raw text"},
+            {"name": "role", "type": "STRING", "description": "'user' or 'agent'"},
+            {"name": "timestamp", "type": "DATETIME"},
+            {"name": "sentiment_score", "type": "FLOAT", "description": "-1.0 to 1.0"}
         ]
     },
 
-    # --- Rule & Requirement Nodes ---
+
     {
-        "label": "Restriction", 
+        "label": "Fact", 
         "properties": [
-            {"name": "min_height_inches", "type": "INTEGER"},
-            {"name": "max_weight_lbs", "type": "INTEGER"},
-            {"name": "min_age_years", "type": "INTEGER"},
-            {"name": "description", "type": "STRING", "description": "Full text like '48 inches minimum'"}
+            {"name": "category", "type": "STRING", "description": "e.g., Occupation, Location, Hobby"},
+            {"name": "value", "type": "STRING", "description": "e.g., 'Nurse', 'Seattle', 'Mystery Novels'"},
+            {"name": "confidence", "type": "FLOAT"}
         ]
     },
     {
-        "label": "Pass", 
+        "label": "Entity", 
         "properties": [
-            {"name": "name", "type": "STRING", "description": "e.g., Thrill Waterpark Full Day Pass"},
-            {"name": "category", "type": "STRING", "description": "Shore Excursion, Day Pass"},
-            {"name": "dynamic_price_min", "type": "FLOAT", "description": "Lowest observed price"},
-            {"name": "dynamic_price_max", "type": "FLOAT", "description": "Highest observed price"}
+            {"name": "name", "type": "STRING", "description": "e.g., 'Luna', 'Rattlesnake Ledge'"},
+            {"name": "type", "type": "STRING", "description": "e.g., Pet, Location, BookGenre"}
         ]
     }
 ]
 
 RELATIONSHIP_TYPES = [
-    # Spatial / Hierarchy
-    {"label": "HAS_ZONE", "description": "Destination contains a major neighborhood"},
-    {"label": "CONTAINS_VENUE", "description": "Zone contains a specific attraction/restaurant"},
-    {"label": "LOCATED_NEAR", "description": "Navigational adjacency (e.g., 'Also close by')"},
-    {"label": "SERVED_BY_TRAM", "description": "Zone connects to a specific tram stop"},
+    {"label": "HAS_SESSION", "description": "User -> Session. The main branch connector."},
+    {"label": "CONTAINS_THREAD", "description": "Session -> Message (The first message of the session)."},
+    {"label": "NEXT_MESSAGE", "description": "Message -> Message. Maintains the linear flow of chat."},
     
-    # Requirements & Rules
-    {"label": "HAS_RESTRICTION", "description": "Venue enforces specific height/weight rules"},
-    {"label": "REQUIRES_PASS", "description": "Venue requires a specific purchased pass to enter"},
+    {"label": "SENT_BY", "description": "Message -> User OR Message -> Agent"},
     
-    # Logistics
-    {"label": "HAS_NEAREST_BATHROOM", "description": "Navigation helper scraped from 'Location and getting here'"},
-    {"label": "HAS_NEAREST_DINING", "description": "Navigation helper scraped from 'Location and getting here'"},
-
-    # Cruise Operation
-    {"label": "SAILS_ITINERARY", "description": "Ship performs a specific route"},
-    {"label": "VISITS_DESTINATION", "description": "Itinerary includes a stop at this place"},
-    {"label": "HAS_SAILING", "description": "Itinerary has a specific departure date instance"}
+    {"label": "KNOWS_FACT", "description": "User -> Fact. (e.g., User KNOWS_FACT 'Is a Nurse')"},
+    {"label": "MENTIONS_ENTITY", "description": "Message -> Entity. (e.g., 'I love Luna' -> Luna)"},
+    {"label": "RELATED_TO", "description": "Entity -> Entity. (e.g., Luna RELATED_TO Cat)"},
+    
+    {"label": "EXTRACTED_FROM", "description": "Fact -> Session. Helps you know WHICH conversation revealed the fact."}
 ]
 
 PATTERNS = [
-    # Hierarchy Mapping
-    ["Destination", "HAS_ZONE", "Zone"],
-    ["Zone", "CONTAINS_VENUE", "Venue"],
-    ["Zone", "LOCATED_NEAR", "Zone"],
+    ["User", "HAS_SESSION", "Session"],
     
-    # Logistics Mapping (from 'Location and getting here' section)
-    ["Zone", "SERVED_BY_TRAM", "LogisticsPoint"],
-    ["Zone", "HAS_NEAREST_BATHROOM", "LogisticsPoint"], 
-    ["Venue", "HAS_NEAREST_DINING", "Venue"],
+    ["Session", "CONTAINS_THREAD", "Message"], 
+    ["Message", "NEXT_MESSAGE", "Message"],
     
-    # Restriction Mapping (from 'Restrictions' section)
-    ["Venue", "HAS_RESTRICTION", "Restriction"],
-    ["Zone", "HAS_RESTRICTION", "Restriction"], # e.g., Hideaway Beach is 18+
+    ["Message", "SENT_BY", "User"],
+    ["Message", "SENT_BY", "Agent"],
     
-    # Commercial/Booking Mapping
-    ["Venue", "REQUIRES_PASS", "Pass"], # e.g., Thrill Waterpark Slides -> Thrill Waterpark Pass
+    ["User", "KNOWS_FACT", "Fact"],
+    ["Fact", "EXTRACTED_FROM", "Session"], 
     
-    # Cruise Mapping
-    ["Ship", "SAILS_ITINERARY", "Itinerary"],
-    ["Itinerary", "VISITS_DESTINATION", "Destination"],
-    ["Itinerary", "HAS_SAILING", "Sailing"]
+    ["Message", "MENTIONS_ENTITY", "Entity"],
+    ["Entity", "RELATED_TO", "Entity"]
 ]
 
 GRAPH_SCHEMA = {
     "node_types": NODE_TYPES,
     "relationship_types": RELATIONSHIP_TYPES,
-    "patterns": PATTERNS,
-    "additional_node_types": True,
-    "additional_relationship_types": True,
-    "additional_patterns": True
+    "patterns": PATTERNS
 }
 
 
