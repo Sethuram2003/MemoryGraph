@@ -1,7 +1,8 @@
+from typing import Optional
 from neo4j import GraphDatabase, basic_auth
-from neo4j_graphrag.embeddings import AzureOpenAIEmbeddings, OllamaEmbeddings
+from neo4j_graphrag.embeddings import OllamaEmbeddings
 from neo4j_graphrag.generation import GraphRAG
-from neo4j_graphrag.llm import AzureOpenAILLM, OllamaLLM
+from neo4j_graphrag.llm import OllamaLLM
 from neo4j_graphrag.retrievers import VectorCypherRetriever
 from neo4j_graphrag.experimental.pipeline.kg_builder import SimpleKGPipeline
 from neo4j_graphrag.indexes import create_vector_index
@@ -10,8 +11,7 @@ from neo4j_graphrag.experimental.components.text_splitters.fixed_size_splitter i
 import os
 import asyncio
 
-from src.core.neo4j_database.prompts import rag_template, PROMPT_TEMPLATE, DEFAULT_TEMPLATE
-from src.core.neo4j_database.schema import GRAPH_SCHEMA
+from src.core.neo4j_database.prompts import rag_template
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -95,53 +95,15 @@ class Neo4jDBManager:
                     neo4j_database=db_name,
                     # prompt_template=PROMPT_TEMPLATE,
                     # schema="EXTRACTED",
-                    schema=GRAPH_SCHEMA,
+                    # schema=GRAPH_SCHEMA,
                     from_pdf=False
                     )
 
         await kg_builder.run_async(text=text)
         print("Finished KG construction from text.")
 
-    
-    async def pipe_line(self, db_name: str, path: str):
-        """
-        create a KG and populate the database
-        """
 
-        azure_embedding = AzureOpenAIEmbeddings(
-                                    model=os.getenv("DEPLOYMENT"),
-                                    api_key= os.getenv("API_KEY"), 
-                                    azure_endpoint=os.getenv("API_ENDPOINT"),
-                                    api_version=os.getenv("API_VERSION")
-                                )
-        
-        test_embedding = azure_embedding.embed_query("test")
-        actual_dimensions = len(test_embedding)
-        print(actual_dimensions)
-
-        llm = AzureOpenAILLM(
-                                model_name=os.getenv("AZURE_OPENAI_DEPLOYMENT"),           
-                                api_key= os.getenv("AZURE_OPENAI_API_KEY"), 
-                                azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-                                api_version="2024-08-01-preview",
-                            )
-
-
-        kg_builder = SimpleKGPipeline(
-                    llm=llm,
-                    prompt_template=DEFAULT_TEMPLATE,
-                    driver=self.driver,
-                    text_splitter=FixedSizeSplitter(chunk_size=800, chunk_overlap=100),
-                    embedder=azure_embedding,
-                    from_pdf=True,
-                    neo4j_database=db_name
-                    )
-
-        await kg_builder.run_async(file_path=path)
-        print("Finished KG construction.")
-
-
-    def run_rag_query(self, db_name: str, query: str):
+    def run_rag_query(self, db_name: str, query: str, message_history: Optional[list] = []):
         """
         Run a RAG query against the specified database.
         """
@@ -196,8 +158,11 @@ class Neo4jDBManager:
         print("Running RAG query...")
         response = rag.search(
             query_text=query,
+            message_history=message_history,
             retriever_config={"top_k": 5}
         )
+
+        print("RAG query completed.", response)
 
         return response.answer
 
@@ -211,6 +176,15 @@ async def main():
     manager = Neo4jDBManager(uri, admin_user, admin_password, database)
 
     # manager.clear_database(database)
+    response =manager.run_rag_query(
+        db_name=database,
+        query="What do you remember about our previous conversation? and also tell me what did i ask you in the before messagee",
+        message_history=[
+            {"role": "user", "content": "We talked about the project timeline and deliverables."},
+            {"role": "assistant", "content": "You mentioned that the project deadline is in 2 weeks and the main deliverables are a report and a presentation."}
+        ]
+        )
+    print("RAG Query Response:", response)
 
     manager.close()
 
