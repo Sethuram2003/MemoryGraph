@@ -5,6 +5,7 @@ from langchain.tools import tool
 
 from src.core.mysql_database.mysql_service import get_mysql_service, close_mysql_service
 from src.core.neo4j_database.neo4j_service import get_neo4j_service
+from src.core.agent_logic.prompts import SYSTEM_PROMPT, SYSTEM_PROMPT_WITH_RAG
 
 def db_messages_to_langchain(messages):
     """Convert list of dicts from DB to LangChain message list."""
@@ -27,10 +28,10 @@ async def chat_agent(session_id: str, user_input: str) -> str:
 
     chat_history_length = len(total_messages)
 
-    if chat_history_length >= 15 and chat_history_length % 15 == 0:
+    if chat_history_length >= 10 and chat_history_length % 10 == 0:
         graphrag_messages = manager.get_session_history(
             session_identifier=session_id,
-            limit=15,
+            limit=10,
             order="desc"
         )
         graphrag_messages.reverse()
@@ -64,7 +65,7 @@ async def chat_agent(session_id: str, user_input: str) -> str:
 
     llm = ChatOllama(model="kimi-k2:1t-cloud")
 
-    if chat_history_length > 15:
+    if chat_history_length > 10:
         @tool
         def chat_history_tool(query: str) -> str:
             """ Tool to query the Neo4j knowledge graph using RAG and return the answer. from the chat history. """
@@ -80,13 +81,13 @@ async def chat_agent(session_id: str, user_input: str) -> str:
         agent = create_agent(
             llm,
             tools=[chat_history_tool],
-            system_prompt="You are a helpful assistant that can use tools to answer questions based on the chat history."
+            system_prompt=SYSTEM_PROMPT_WITH_RAG
         )
     else:
 
         agent = create_agent(
             llm,
-            system_prompt="You are a helpful assistant"
+            system_prompt=SYSTEM_PROMPT
         )
 
     response = await agent.ainvoke({"messages": history})
