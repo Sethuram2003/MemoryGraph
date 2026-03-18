@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Memory-GPT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ── TOKENS ───────────────────────────────────────────────── */
+    :root {
+      --bg:        #0a0b0e;
+      --surface:   #0f1117;
+      --panel:     #13151c;
+      --border:    #1e2130;
+      --border-hi: #2a2f45;
+      --text:      #e2e4ef;
+      --muted:     #5a5f7a;
+      --faint:     #1e2235;
+      --accent:    #e8c547;
+      --accent-dim:#a88c28;
+      --accent-glow: rgba(232,197,71,.12);
+      --node:      #4f8ef7;
+      --node-dim:  #2a4d9a;
+      --danger:    #f06060;
+      --user-bg:   #181c2a;
+      --ai-bg:     #111420;
+      --radius:    12px;
+      --radius-sm: 7px;
+      --font-ui:   'Syne', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+      --sidebar-w: 280px;
+    }
+
+    /* ── RESET ───────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-ui);
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── SIDEBAR ──────────────────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      position: relative;
+      z-index: 10;
+    }
+
+    .sidebar-header {
+      padding: 24px 20px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .logo-icon {
+      width: 34px;
+      height: 34px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .logo-icon svg { width: 18px; height: 18px; }
+
+    .logo-text {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+
+    .logo-text span { color: var(--accent); }
+
+    .new-chat-btn {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--accent-glow);
+      border: 1px solid var(--accent-dim);
+      border-radius: var(--radius-sm);
+      color: var(--accent);
+      font-family: var(--font-ui);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background .2s, border-color .2s, transform .1s;
+    }
+
+    .new-chat-btn:hover {
+      background: rgba(232,197,71,.2);
+      border-color: var(--accent);
+    }
+
+    .new-chat-btn:active { transform: scale(.98); }
+
+    .new-chat-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+    /* sessions list */
+    .sessions-label {
+      padding: 14px 20px 6px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    #sessions-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 10px 10px;
+    }
+
+    #sessions-list::-webkit-scrollbar { width: 4px; }
+    #sessions-list::-webkit-scrollbar-track { background: transparent; }
+    #sessions-list::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 4px; }
+
+    .session-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      position: relative;
+      transition: background .15s;
+      margin-bottom: 2px;
+    }
+
+    .session-item:hover { background: var(--faint); }
+
+    .session-item.active {
+      background: var(--faint);
+      border: 1px solid var(--border-hi);
+    }
+
+    .session-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--node-dim);
+      flex-shrink: 0;
+      transition: background .2s;
+    }
+
+    .session-item.active .session-dot { background: var(--node); box-shadow: 0 0 6px var(--node); }
+
+    .session-info { flex: 1; min-width: 0; }
+
+    .session-name {
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text);
+    }
+
+    .session-meta {
+      font-size: 10px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      margin-top: 2px;
+    }
+
+    .session-delete {
+      opacity: 0;
+      background: none;
+      border: none;
+      color: var(--danger);
+      cursor: pointer;
+      padding: 2px;
+      display: flex;
+      align-items: center;
+      transition: opacity .15s;
+    }
+
+    .session-item:hover .session-delete { opacity: .6; }
+    .session-delete:hover { opacity: 1 !important; }
+    .session-delete svg { width: 13px; height: 13px; }
+
+    /* sidebar footer */
+    .sidebar-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .health-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--muted);
+    }
+
+    .health-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+      transition: background .3s;
+    }
+
+    .health-dot.ok { background: #4caf7d; box-shadow: 0 0 5px rgba(76,175,125,.5); }
+    .health-dot.err { background: var(--danger); }
+    .health-dot.checking { animation: pulse 1.2s ease-in-out infinite; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .3; }
+    }
+
+    /* ── MAIN AREA ────────────────────────────────────────────── */
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      min-width: 0;
+      background: var(--bg);
+      position: relative;
+    }
+
+    /* subtle grid bg */
+    #main::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: .35;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── TOPBAR ───────────────────────────────────────────────── */
+    #topbar {
+      height: 58px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 12px;
+      position: relative;
+      z-index: 5;
+      background: rgba(10,11,14,.85);
+      backdrop-filter: blur(8px);
+    }
+
+    .topbar-title {
+      font-size: 15px;
+      font-weight: 600;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .topbar-id {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 3px 8px;
+      letter-spacing: .5px;
+    }
+
+    .graph-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--node);
+      background: rgba(79,142,247,.08);
+      border: 1px solid rgba(79,142,247,.2);
+      border-radius: 5px;
+      padding: 4px 10px;
+    }
+
+    .graph-indicator svg { width: 12px; height: 12px; }
+
+    /* ── MESSAGES ─────────────────────────────────────────────── */
+    #chat-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    #chat-area::-webkit-scrollbar { width: 5px; }
+    #chat-area::-webkit-scrollbar-track { background: transparent; }
+    #chat-area::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 5px; }
+
+    .messages-wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* empty state */
+    #empty-state {
+      max-width: 520px;
+      margin: 60px auto 0;
+      text-align: center;
+      padding: 0 24px;
+    }
+
+    .empty-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 20px;
+      background: var(--faint);
+      border: 1px solid var(--border-hi);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .empty-icon svg { width: 28px; height: 28px; color: var(--accent); }
+
+    #empty-state h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      letter-spacing: -0.3px;
+    }
+
+    #empty-state p {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.7;
+      font-family: var(--font-mono);
+    }
+
+    .empty-hints {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 24px;
+    }
+
+    .hint-chip {
+      padding: 7px 14px;
+      background: var(--panel);
+      border: 1px solid var(--border-hi);
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
+    }
+
+    .hint-chip:hover { border-color: var(--accent-dim); color: var(--accent); }
+
+    /* message rows */
+    .msg-row {
+      display: flex;
+      gap: 12px;
+      animation: fadeSlide .25s ease-out;
+    }
+
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg-row.user { flex-direction: row-reverse; }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .avatar.user-av {
+      background: var(--accent);
+      color: #0a0b0e;
+    }
+
+    .avatar.ai-av {
+      background: var(--panel);
+      border: 1px solid var(--border-hi);
+      color: var(--node);
+    }
+
+    .avatar.ai-av svg { width: 16px; height: 16px; }
+
+    .bubble {
+      max-width: 82%;
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      line-height: 1.72;
+      position: relative;
+    }
+
+    .bubble.user {
+      background: var(--user-bg);
+      border: 1px solid var(--border-hi);
+      border-bottom-right-radius: 3px;
+      color: var(--text);
+    }
+
+    .bubble.ai {
+      background: var(--ai-bg);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 3px;
+      color: var(--text);
+    }
+
+    .bubble-meta {
+      font-size: 10px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      margin-top: 6px;
+    }
+
+    .msg-row.user .bubble-meta { text-align: right; }
+
+    /* thinking indicator */
+    .thinking-row { align-items: center; }
+
+    .thinking-dots {
+      display: flex;
+      gap: 5px;
+      padding: 14px 16px;
+    }
+
+    .thinking-dots span {
+      width: 6px;
+      height: 6px;
+      background: var(--muted);
+      border-radius: 50%;
+      animation: bounce 1.2s ease-in-out infinite;
+    }
+
+    .thinking-dots span:nth-child(2) { animation-delay: .2s; }
+    .thinking-dots span:nth-child(3) { animation-delay: .4s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(.7); opacity: .4; }
+      40% { transform: scale(1.1); opacity: 1; }
+    }
+
+    /* ── memory store notification ──────────────────────────── */
+    .memory-notice {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: rgba(79,142,247,.06);
+      border: 1px solid rgba(79,142,247,.15);
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--node);
+      animation: fadeSlide .3s ease-out;
+      align-self: center;
+      max-width: 400px;
+    }
+
+    .memory-notice svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+    /* ── INPUT AREA ───────────────────────────────────────────── */
+    #input-area {
+      padding: 16px 24px 20px;
+      position: relative;
+      z-index: 5;
+      background: rgba(10,11,14,.9);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid var(--border);
+    }
+
+    .input-wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    #query-input {
+      width: 100%;
+      background: var(--panel);
+      border: 1px solid var(--border-hi);
+      border-radius: var(--radius);
+      padding: 14px 56px 14px 18px;
+      color: var(--text);
+      font-family: var(--font-ui);
+      font-size: 14px;
+      line-height: 1.6;
+      resize: none;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      min-height: 52px;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+
+    #query-input::placeholder { color: var(--muted); }
+
+    #query-input:focus {
+      border-color: var(--accent-dim);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    #query-input::-webkit-scrollbar { width: 4px; }
+    #query-input::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 4px; }
+
+    #send-btn {
+      position: absolute;
+      right: 10px;
+      bottom: 10px;
+      width: 36px;
+      height: 36px;
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .15s, transform .1s, opacity .2s;
+    }
+
+    #send-btn:hover { background: #f0d060; }
+    #send-btn:active { transform: scale(.93); }
+    #send-btn:disabled { opacity: .35; cursor: not-allowed; }
+    #send-btn svg { width: 16px; height: 16px; color: #0a0b0e; }
+
+    .input-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+      max-width: 760px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .input-hint {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+    }
+
+    .msg-count {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+    }
+
+    /* ── TOAST ────────────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 90px;
+      left: 50%;
+      transform: translateX(-50%) translateY(12px);
+      background: var(--panel);
+      border: 1px solid var(--border-hi);
+      color: var(--text);
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: var(--font-mono);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .25s, transform .25s;
+      z-index: 100;
+      white-space: nowrap;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── MOBILE TOGGLE ────────────────────────────────────────── */
+    #sidebar-toggle {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      padding: 4px;
+    }
+
+    @media (max-width: 640px) {
+      #sidebar {
+        position: fixed;
+        left: -100%;
+        top: 0;
+        transition: left .25s;
+        z-index: 50;
+      }
+
+      #sidebar.open { left: 0; }
+
+      #sidebar-toggle { display: flex; align-items: center; }
+
+      .topbar-id { display: none; }
+    }
+
+    /* ── SCROLLBAR GLOBAL ────────────────────────────────────── */
+    * { scrollbar-color: var(--border-hi) transparent; scrollbar-width: thin; }
+  </style>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══════════════════════════════════════════════ -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#0a0b0e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <circle cx="4"  cy="6"  r="2"/>
+          <circle cx="20" cy="6"  r="2"/>
+          <circle cx="4"  cy="18" r="2"/>
+          <circle cx="20" cy="18" r="2"/>
+          <line x1="6"  y1="7"  x2="10" y2="11"/>
+          <line x1="18" y1="7"  x2="14" y2="11"/>
+          <line x1="6"  y1="17" x2="10" y2="13"/>
+          <line x1="18" y1="17" x2="14" y2="13"/>
+        </svg>
+      </div>
+      <span class="logo-text">Memory<span>-</span>GPT</span>
+    </div>
+    <button class="new-chat-btn" onclick="createNewSession()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"/>
+        <line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      New Session
+    </button>
+  </div>
+
+  <div class="sessions-label">Sessions</div>
+  <div id="sessions-list"></div>
+
+  <div class="sidebar-footer">
+    <div class="health-badge">
+      <div class="health-dot checking" id="health-dot"></div>
+      <span id="health-text">checking…</span>
+    </div>
+  </div>
+</aside>
+
+<!-- ══ MAIN ═════════════════════════════════════════════════ -->
+<div id="main">
+
+  <!-- topbar -->
+  <div id="topbar">
+    <button id="sidebar-toggle" onclick="toggleSidebar()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="6"  x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+    <span class="topbar-title" id="topbar-title">Select or create a session</span>
+    <span class="topbar-id" id="topbar-id" style="display:none"></span>
+    <div class="graph-indicator" id="graph-indicator" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <circle cx="4"  cy="6"  r="2"/>
+        <circle cx="20" cy="18" r="2"/>
+        <line x1="5.5" y1="7.5" x2="10.5" y2="10.5"/>
+        <line x1="13.5" y1="13.5" x2="18.5" y2="16.5"/>
+      </svg>
+      Graph RAG Active
+    </div>
+  </div>
+
+  <!-- chat area -->
+  <div id="chat-area">
+    <div id="empty-state">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      </div>
+      <h2>Start a conversation</h2>
+      <p>Your messages are stored in a knowledge graph and<br>retrieved intelligently to improve future responses.</p>
+      <div class="empty-hints">
+        <div class="hint-chip" onclick="useHint(this)">What can you help me with?</div>
+        <div class="hint-chip" onclick="useHint(this)">Summarize what we've discussed</div>
+        <div class="hint-chip" onclick="useHint(this)">What do you remember about me?</div>
+        <div class="hint-chip" onclick="useHint(this)">Tell me something interesting</div>
+      </div>
+    </div>
+    <div class="messages-wrap" id="messages-wrap" style="display:none"></div>
+  </div>
+
+  <!-- input -->
+  <div id="input-area">
+    <div class="input-wrap">
+      <textarea
+        id="query-input"
+        placeholder="Ask anything… your history is remembered"
+        rows="1"
+        onkeydown="handleKey(event)"
+        oninput="autoResize(this)"
+      ></textarea>
+      <button id="send-btn" onclick="sendMessage()" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="19" x2="12" y2="5"/>
+          <polyline points="5 12 12 5 19 12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="input-footer">
+      <span class="input-hint">↵ send &nbsp;·&nbsp; Shift+↵ newline</span>
+      <span class="msg-count" id="msg-count"></span>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  // ── State ─────────────────────────────────────────────────────
+  const BASE = '';   // same origin; change to 'http://localhost:8000' if needed
+  let sessions = JSON.parse(localStorage.getItem('pigpt_sessions') || '[]');
+  let activeId  = null;
+  let sending   = false;
+
+  // ── Persistence ───────────────────────────────────────────────
+  function saveState() {
+    localStorage.setItem('pigpt_sessions', JSON.stringify(sessions));
+  }
+
+  function getSession(id) {
+    return sessions.find(s => s.id === id);
+  }
+
+  // ── ID generator ──────────────────────────────────────────────
+  function generateId() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    return Array.from({ length: 7 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  }
+
+  // ── Session management ─────────────────────────────────────────
+  function createNewSession() {
+    const id   = generateId();
+    const name = `Session ${sessions.length + 1}`;
+    sessions.unshift({ id, name, messages: [], msgCount: 0, createdAt: Date.now() });
+    saveState();
+    renderSessionList();
+    switchSession(id);
+    closeSidebarOnMobile();
+  }
+
+  function switchSession(id) {
+    activeId = id;
+    renderSessionList();
+    renderMessages();
+    updateTopbar();
+    document.getElementById('query-input').focus();
+  }
+
+  function deleteSession(id, e) {
+    e.stopPropagation();
+    sessions = sessions.filter(s => s.id !== id);
+    if (activeId === id) {
+      activeId = sessions[0]?.id || null;
+    }
+    saveState();
+    renderSessionList();
+    renderMessages();
+    updateTopbar();
+  }
+
+  function renderSessionList() {
+    const list = document.getElementById('sessions-list');
+    if (!sessions.length) {
+      list.innerHTML = `<div style="padding:14px 20px;font-size:12px;color:var(--muted);font-family:var(--font-mono)">No sessions yet</div>`;
+      return;
+    }
+    list.innerHTML = sessions.map(s => `
+      <div class="session-item ${s.id === activeId ? 'active' : ''}" onclick="switchSession('${s.id}')">
+        <div class="session-dot"></div>
+        <div class="session-info">
+          <div class="session-name">${escHtml(s.name)}</div>
+          <div class="session-meta">${s.msgCount} msg${s.msgCount !== 1 ? 's' : ''} · ${timeAgo(s.createdAt)}</div>
+        </div>
+        <button class="session-delete" onclick="deleteSession('${s.id}', event)" title="Delete">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    `).join('');
+  }
+
+  function updateTopbar() {
+    const sess = getSession(activeId);
+    const title = document.getElementById('topbar-title');
+    const topId  = document.getElementById('topbar-id');
+    const indicator = document.getElementById('graph-indicator');
+    const sendBtn = document.getElementById('send-btn');
+
+    if (sess) {
+      title.textContent = sess.name;
+      topId.textContent = sess.id;
+      topId.style.display = 'block';
+      indicator.style.display = sess.msgCount >= 4 ? 'flex' : 'none';
+      sendBtn.disabled = false;
+    } else {
+      title.textContent = 'Select or create a session';
+      topId.style.display = 'none';
+      indicator.style.display = 'none';
+      sendBtn.disabled = true;
+    }
+
+    const cnt = document.getElementById('msg-count');
+    cnt.textContent = sess ? `${sess.msgCount} message${sess.msgCount !== 1 ? 's' : ''}` : '';
+  }
+
+  // ── Render messages ────────────────────────────────────────────
+  function renderMessages() {
+    const sess   = getSession(activeId);
+    const empty  = document.getElementById('empty-state');
+    const wrap   = document.getElementById('messages-wrap');
+
+    if (!sess || !sess.messages.length) {
+      empty.style.display = '';
+      wrap.style.display  = 'none';
+      return;
+    }
+
+    empty.style.display = 'none';
+    wrap.style.display  = 'flex';
+    wrap.innerHTML = sess.messages.map(m => buildBubble(m)).join('');
+    scrollBottom(false);
+  }
+
+  function buildBubble(m) {
+    if (m.type === 'memory') {
+      return `<div class="memory-notice">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="3"/>
+          <circle cx="4"  cy="6"  r="2"/>
+          <circle cx="20" cy="18" r="2"/>
+          <line x1="5.5" y1="7.5" x2="10.5" y2="10.5"/>
+          <line x1="13.5" y1="13.5" x2="18.5" y2="16.5"/>
+        </svg>
+        Conversation stored to Knowledge Graph
+      </div>`;
+    }
+
+    const isUser = m.role === 'user';
+    const avatarHtml = isUser
+      ? `<div class="avatar user-av">U</div>`
+      : `<div class="avatar ai-av"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="4" cy="6" r="2"/><circle cx="20" cy="6" r="2"/><circle cx="4" cy="18" r="2"/><circle cx="20" cy="18" r="2"/><line x1="6" y1="7" x2="10" y2="11"/><line x1="18" y1="7" x2="14" y2="11"/><line x1="6" y1="17" x2="10" y2="13"/><line x1="18" y1="17" x2="14" y2="13"/></svg></div>`;
+
+    return `
+      <div class="msg-row ${isUser ? 'user' : 'ai'}">
+        ${avatarHtml}
+        <div>
+          <div class="bubble ${isUser ? 'user' : 'ai'}">${escHtml(m.content).replace(/\n/g, '<br>')}</div>
+          <div class="bubble-meta">${formatTime(m.ts)}</div>
+        </div>
+      </div>`;
+  }
+
+  // ── Send ───────────────────────────────────────────────────────
+  async function sendMessage() {
+    if (sending) return;
+    const input = document.getElementById('query-input');
+    const query = input.value.trim();
+    if (!query || !activeId) return;
+
+    const sess = getSession(activeId);
+    if (!sess) return;
+
+    // Auto-name session from first user message
+    if (sess.messages.filter(m => m.role === 'user').length === 0) {
+      sess.name = query.length > 36 ? query.slice(0, 33) + '…' : query;
+    }
+
+    // Add user message
+    sess.messages.push({ role: 'user', content: query, ts: Date.now() });
+    sess.msgCount++;
+
+    // Check if we should show memory notice (every 8 messages)
+    const prevCount = sess.msgCount - 1;
+    if (sess.msgCount > 0 && prevCount % 8 === 0 && prevCount > 0) {
+      sess.messages.push({ type: 'memory', ts: Date.now() });
+    }
+
+    saveState();
+    renderMessages();
+    appendThinking();
+    input.value = '';
+    autoResize(input);
+    updateTopbar();
+    renderSessionList();
+
+    sending = true;
+    document.getElementById('send-btn').disabled = true;
+
+    try {
+      const form = new FormData();
+      form.append('query', query);
+      form.append('session_id', activeId);
+
+      const res = await fetch(`${BASE}/dynamic-kg-query`, {
+        method: 'POST',
+        body: form
+      });
+
+      removeThinking();
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const data = await res.json();
+      const answer = data.answer || '(no response)';
+
+      sess.messages.push({ role: 'ai', content: answer, ts: Date.now() });
+      sess.msgCount++;
+
+      // Show memory notice every 8 messages
+      if (sess.msgCount % 8 === 0) {
+        sess.messages.push({ type: 'memory', ts: Date.now() });
+      }
+
+      saveState();
+      appendBubble({ role: 'ai', content: answer, ts: Date.now() });
+      updateTopbar();
+      renderSessionList();
+
+    } catch (err) {
+      removeThinking();
+      const errMsg = `Error: ${err.message}`;
+      sess.messages.push({ role: 'ai', content: errMsg, ts: Date.now() });
+      saveState();
+      appendBubble({ role: 'ai', content: errMsg, ts: Date.now() });
+      showToast('Request failed — is the server running?');
+    } finally {
+      sending = false;
+      if (activeId) document.getElementById('send-btn').disabled = false;
+    }
+  }
+
+  function appendThinking() {
+    const wrap = document.getElementById('messages-wrap');
+    wrap.style.display = 'flex';
+    document.getElementById('empty-state').style.display = 'none';
+    const div = document.createElement('div');
+    div.id  = 'thinking-row';
+    div.className = 'msg-row ai thinking-row';
+    div.innerHTML = `
+      <div class="avatar ai-av"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="4" cy="6" r="2"/><circle cx="20" cy="6" r="2"/><circle cx="4" cy="18" r="2"/><circle cx="20" cy="18" r="2"/><line x1="6" y1="7" x2="10" y2="11"/><line x1="18" y1="7" x2="14" y2="11"/><line x1="6" y1="17" x2="10" y2="13"/><line x1="18" y1="17" x2="14" y2="13"/></svg></div>
+      <div class="bubble ai thinking-dots"><span></span><span></span><span></span></div>`;
+    wrap.appendChild(div);
+    scrollBottom();
+  }
+
+  function removeThinking() {
+    document.getElementById('thinking-row')?.remove();
+  }
+
+  function appendBubble(m) {
+    const wrap = document.getElementById('messages-wrap');
+    const div = document.createElement('div');
+    div.innerHTML = buildBubble(m);
+    const node = div.firstElementChild;
+    wrap.appendChild(node);
+    scrollBottom();
+
+    // check for memory notice
+    const sess = getSession(activeId);
+    const lastMsg = sess?.messages[sess.messages.length - 1];
+    if (lastMsg?.type === 'memory') {
+      const mDiv = document.createElement('div');
+      mDiv.innerHTML = buildBubble(lastMsg);
+      wrap.appendChild(mDiv.firstElementChild);
+      scrollBottom();
+    }
+  }
+
+  function scrollBottom(smooth = true) {
+    const area = document.getElementById('chat-area');
+    area.scrollTo({ top: area.scrollHeight, behavior: smooth ? 'smooth' : 'instant' });
+  }
+
+  // ── Input handling ─────────────────────────────────────────────
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+    const sendBtn = document.getElementById('send-btn');
+    sendBtn.disabled = !el.value.trim() || !activeId || sending;
+  }
+
+  function useHint(chip) {
+    if (!activeId) createNewSession();
+    const input = document.getElementById('query-input');
+    input.value = chip.textContent;
+    autoResize(input);
+    input.focus();
+  }
+
+  // ── Health check ───────────────────────────────────────────────
+  async function checkHealth() {
+    const dot  = document.getElementById('health-dot');
+    const text = document.getElementById('health-text');
+    try {
+      const res = await fetch(`${BASE}/health`);
+      if (res.ok) {
+        dot.className  = 'health-dot ok';
+        text.textContent = 'Service online';
+      } else {
+        throw new Error();
+      }
+    } catch {
+      dot.className  = 'health-dot err';
+      text.textContent = 'Service offline';
+    }
+  }
+
+  // ── Sidebar mobile ─────────────────────────────────────────────
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+  }
+
+  function closeSidebarOnMobile() {
+    if (window.innerWidth <= 640) {
+      document.getElementById('sidebar').classList.remove('open');
+    }
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function formatTime(ts) {
+    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function timeAgo(ts) {
+    const s = Math.floor((Date.now() - ts) / 1000);
+    if (s < 60)   return 'just now';
+    if (s < 3600) return `${Math.floor(s/60)}m ago`;
+    if (s < 86400) return `${Math.floor(s/3600)}h ago`;
+    return `${Math.floor(s/86400)}d ago`;
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3200);
+  }
+
+  // ── Init ───────────────────────────────────────────────────────
+  (function init() {
+    renderSessionList();
+    if (sessions.length) {
+      switchSession(sessions[0].id);
+    } else {
+      updateTopbar();
+    }
+    checkHealth();
+    setInterval(checkHealth, 30_000);
+    setInterval(renderSessionList, 60_000); // update "time ago"
+  })();
+</script>
+</body>
+</html>
